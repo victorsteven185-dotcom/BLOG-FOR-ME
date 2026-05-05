@@ -29,9 +29,15 @@ interface Article {
   tags: string[];
 }
 
-type View = 'home' | 'about' | 'contact' | 'archive' | 'article-detail' | 'team' | 'legal';
+type View = 'home' | 'about' | 'contact' | 'archive' | 'article-detail' | 'team' | 'legal' | 'strategy';
 
 // Mock Data
+const STRATEGY_DATA = [
+  { title: "Capital Allocation", value: "42%", trend: "+2.4%", desc: "Weighted towards emerging tech and verified digital primitives." },
+  { title: "Risk Exposure", value: "Low", trend: "Stable", desc: "Hedging protocols active against volatility in high-yield debt." },
+  { title: "Liquidity Depth", value: "$1.2B", trend: "+12%", desc: "Aggregated secondary market depth across Zurich/London nodes." }
+];
+
 const TEAM = [
   { name: "Elena Vance", role: "Editor-in-Chief", bio: "Former Lex correspondent with 15 years experience in capital markets.", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop" },
   { name: "Marcus Thorne", role: "Macro Strategist", bio: "Leading researcher on digital primitives and sovereign wealth shifts.", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop" },
@@ -105,7 +111,63 @@ const ARTICLES: Article[] = [
     image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop",
     readingTime: "9 min read",
     tags: ["AI", "Quant", "Alpha"]
+  },
+  {
+    id: 7,
+    category: "COMMODITIES",
+    title: "The Copper Crunch: Electrification's Achilles Heel",
+    excerpt: "Why the global push for renewable energy might stay grounded without a radical restructuring of industrial metal supply chains.",
+    author: "Elena Vance",
+    date: "April 24, 2024",
+    image: "https://images.unsplash.com/photo-1533106497176-45ae19b68ba2?q=80&w=2070&auto=format&fit=crop",
+    readingTime: "7 min read",
+    tags: ["Copper", "Energy Transition", "Supply Chain"]
+  },
+  {
+    id: 8,
+    category: "STRATEGY",
+    title: "ESG 2.0: From Compliance to Alpha Generator",
+    excerpt: "How institutional investors are moving past checkbox sustainability toward deep structural integration of environmental risk.",
+    author: "Julian Rossi",
+    date: "April 20, 2024",
+    image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?q=80&w=2070&auto=format&fit=crop",
+    readingTime: "11 min read",
+    tags: ["ESG", "Institutional", "Sustainability"]
+  },
+  {
+    id: 9,
+    category: "REAL ESTATE",
+    title: "The Ghost Office: Repurposing Urban Dead Zones",
+    excerpt: "As commercial occupancy remains low, the conversion of metropolitan hubs into 'living centers' presents a generational arbitrage opportunity.",
+    author: "Marcus Thorne",
+    date: "April 15, 2024",
+    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop",
+    readingTime: "9 min read",
+    tags: ["Commercial Real Estate", "Urbanism", "Arbitrage"]
+  },
+  {
+    id: 10,
+    category: "DEFI",
+    title: "Sovereign Nodes: The Rise of State-Backed Digital Assets",
+    excerpt: "Exploring the tension between decentralized ideals and the inevitable integration of central bank digital currencies into global FX markets.",
+    author: "Sarah Chen",
+    date: "April 10, 2024",
+    image: "https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=1974&auto=format&fit=crop",
+    readingTime: "13 min read",
+    tags: ["CBDC", "DeFi", "Sovereignty"]
   }
+];
+
+// Mock Market Data
+const TICKER_DATA = [
+  { symbol: "S&P 500", price: "5,241.53", change: "+0.32%", trending: "up" },
+  { symbol: "NASDAQ", price: "16,384.47", change: "-0.12%", trending: "down" },
+  { symbol: "BTC/USD", price: "64,212.00", change: "+2.45%", trending: "up" },
+  { symbol: "ETH/USD", price: "3,412.15", change: "-0.82%", trending: "down" },
+  { symbol: "EUR/USD", price: "1.0842", change: "+0.04%", trending: "up" },
+  { symbol: "GBP/USD", price: "1.2631", change: "-0.15%", trending: "down" },
+  { symbol: "GOLD", price: "2,324.40", change: "+1.12%", trending: "up" },
+  { symbol: "CRUDE OIL", price: "82.14", change: "-2.10%", trending: "down" },
 ];
 
 export default function App() {
@@ -118,6 +180,22 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+
+  const MarketTicker = () => (
+    <div className="w-full bg-brand-text text-brand-bg py-2 overflow-hidden border-b border-white/10 select-none">
+      <div className="ticker-content">
+        {[...TICKER_DATA, ...TICKER_DATA].map((item, idx) => (
+          <div key={idx} className="flex items-center gap-4 px-8 border-r border-white/5 last:border-r-0">
+            <span className="font-sans text-[10px] font-bold tracking-widest uppercase opacity-40">{item.symbol}</span>
+            <span className="font-mono text-[10px] font-bold">{item.price}</span>
+            <span className={`font-sans text-[9px] font-bold ${item.trending === 'up' ? 'text-green-400' : 'text-red-400'}`}>
+              {item.change}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   // Preloader effect
   useEffect(() => {
@@ -190,6 +268,7 @@ export default function App() {
           scrolled || view !== 'home' ? 'bg-brand-bg/95 border-brand-text' : 'bg-transparent border-transparent'
         }`}
       >
+        <MarketTicker />
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-end pb-4 pt-6">
           <div className="flex flex-col gap-2">
             <button 
@@ -254,6 +333,7 @@ export default function App() {
                 {[
                   { name: 'Home', view: 'home' as View },
                   { name: 'Archive', view: 'archive' as View },
+                  { name: 'Strategy', view: 'strategy' as View },
                   { name: 'Thesis', view: 'about' as View },
                   { name: 'The Team', view: 'team' as View },
                   { name: 'Contact', view: 'contact' as View },
@@ -295,43 +375,52 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 pt-48 pb-20">
+      <main className="flex-1 pt-72 md:pt-64 pb-20">
         <div className="max-w-7xl mx-auto px-6">
           <AnimatePresence mode="wait">
             {/* HOME VIEW */}
             {view === 'home' && (
               <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 {/* Header Swiper Slider */}
-                <section className="mb-24 h-[600px]">
+                <section className="mb-24 min-h-[500px] md:h-[600px] flex flex-col">
                   <Swiper
                     modules={[Pagination, Autoplay, EffectFade]}
                     effect="fade"
                     pagination={{ clickable: true }}
-                    autoplay={{ delay: 5000 }}
-                    className="h-full hero-swiper"
+                    autoplay={{ delay: 5000, disableOnInteraction: false }}
+                    className="w-full h-full hero-swiper"
+                    autoHeight={true}
                   >
                     {ARTICLES.slice(0, 3).map((article) => (
-                      <SwiperSlide key={article.id}>
-                        <div className="grid md:grid-cols-2 h-full items-center gap-12">
-                          <div className="order-2 md:order-1 space-y-8">
-                            <span className="font-sans text-[10px] font-bold uppercase tracking-widest bg-brand-text text-brand-bg px-2 py-1">
-                              Featured Story
-                            </span>
-                            <h2 className="text-5xl md:text-7xl font-black leading-none group-hover:italic transition-all">
+                      <SwiperSlide key={article.id} className="h-full bg-brand-bg">
+                        <div className="grid md:grid-cols-2 h-full items-center gap-8 md:gap-12 pb-20 md:pb-0">
+                          <div className="order-2 md:order-1 space-y-4 md:space-y-8">
+                            <div>
+                              <span className="font-sans text-[10px] font-bold uppercase tracking-widest bg-brand-text text-brand-bg px-2 py-1">
+                                Featured Story
+                              </span>
+                            </div>
+                            <h2 className="text-4xl md:text-7xl font-black leading-[0.9] group-hover:italic transition-all">
                               {article.title}
                             </h2>
-                            <p className="text-xl text-brand-text/60 italic leading-tight max-w-md">
+                            <p className="text-lg md:text-xl text-brand-text/60 italic leading-tight max-w-md">
                               {article.excerpt}
                             </p>
                             <button 
                               onClick={() => navigateTo('article-detail', article)}
-                              className="group flex items-center gap-4 text-xs font-sans font-bold tracking-[0.3em] uppercase underline-offset-8"
+                              className="group flex items-center gap-4 text-xs font-sans font-bold tracking-[0.3em] uppercase underline underline-offset-8 decoration-1"
                             >
                               Open Ledger <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                             </button>
                           </div>
-                          <div className="order-1 md:order-2 h-full bg-[#D9D7D2] overflow-hidden grayscale contrast-125">
-                            <img src={article.image} alt={article.title} className="w-full h-full object-cover mix-blend-multiply opacity-80" referrerPolicy="no-referrer" />
+                          <div className="order-1 md:order-2 h-64 md:h-full bg-[#D9D7D2] overflow-hidden grayscale contrast-125 relative">
+                            <img 
+                              src={article.image} 
+                              alt={article.title} 
+                              className="w-full h-full object-cover mix-blend-multiply opacity-80" 
+                              referrerPolicy="no-referrer" 
+                            />
+                            <div className="absolute inset-0 bg-brand-text/5 mix-blend-overlay"></div>
                           </div>
                         </div>
                       </SwiperSlide>
@@ -481,6 +570,51 @@ export default function App() {
                       className="w-full h-full object-cover mix-blend-multiply opacity-80"
                       referrerPolicy="no-referrer"
                     />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STRATEGY VIEW */}
+            {view === 'strategy' && (
+              <motion.div key="strategy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="space-y-24">
+                  <header className="max-w-3xl">
+                    <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-8">GLOBAL STRATEGY</h2>
+                    <p className="text-2xl text-brand-text/60 italic">
+                      Our live-updating capital allocation dashboard and structural market analysis.
+                    </p>
+                  </header>
+                  
+                  <div className="grid md:grid-cols-3 gap-8">
+                    {STRATEGY_DATA.map((item, idx) => (
+                      <div key={idx} className="border border-brand-text/10 p-8 space-y-4 hover:border-brand-text transition-colors">
+                        <span className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">{item.title}</span>
+                        <div className="flex items-baseline gap-4">
+                          <h4 className="text-4xl font-black">{item.value}</h4>
+                          <span className="text-green-600 font-sans text-xs font-bold">{item.trend}</span>
+                        </div>
+                        <p className="text-sm opacity-60 leading-relaxed italic">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-brand-text text-brand-bg p-12 md:p-20">
+                    <div className="grid md:grid-cols-2 gap-16 items-center">
+                      <div className="space-y-8">
+                        <h3 className="text-4xl font-black leading-none">Correlated Signal Detection</h3>
+                        <p className="opacity-70 leading-relaxed text-lg">
+                          Using proprietary quantitative nodes to filter noise from actual market-moving catalysts. Our strategy is built on the intersection of geopolitics and computational finance.
+                        </p>
+                        <button className="px-8 py-4 border border-white/20 text-[10px] font-sans font-bold tracking-widest uppercase hover:bg-white hover:text-brand-text transition-all">
+                          Download Q2 Report
+                        </button>
+                      </div>
+                      <div className="h-64 border border-white/10 flex items-center justify-center italic opacity-30 text-sm p-12 text-center">
+                        [ Interactive Analysis Visualization Restricted to Premium Subscribers ]
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
