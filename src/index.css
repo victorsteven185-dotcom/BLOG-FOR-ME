@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --color-brand-bg: #F9F7F2;
+  --color-brand-text: #1A1A1A;
+  --color-brand-accent: #8B0000;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-brand-text font-serif antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-black tracking-tighter;
+  }
+}
+
+.magazine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2.5rem;
+}
+
+.article-image-container {
+  overflow: hidden;
+  @apply aspect-[3/2] bg-[#D9D7D2] grayscale hover:grayscale-0 transition-all duration-700;
+}
+
+.article-image-container img {
+  @apply transition-transform duration-1000 ease-out mix-blend-multiply opacity-90;
+}
+
+.article-card:hover img {
+  @apply scale-105 opacity-100;
+}
+
+.divider-heavy {
+  @apply border-b-2 border-brand-text;
+}
+
+.divider-light {
+  @apply border-b border-brand-text/10;
+}
