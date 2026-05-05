@@ -5,8 +5,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, ArrowUpRight, Search, Instagram, Twitter, Linkedin, ChevronRight } from 'lucide-react';
+import { 
+  Menu, X, ArrowUpRight, Search, Instagram, Twitter, Linkedin, 
+  ChevronRight, ArrowUp, MapPin, Phone, Mail, Globe, Send,
+  Facebook, Github, ChevronLeft
+} from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination, Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/effect-fade';
 
+// Types
 interface Article {
   id: number;
   category: string;
@@ -19,6 +29,16 @@ interface Article {
   tags: string[];
 }
 
+type View = 'home' | 'about' | 'contact' | 'archive' | 'article-detail' | 'team' | 'legal';
+
+// Mock Data
+const TEAM = [
+  { name: "Elena Vance", role: "Editor-in-Chief", bio: "Former Lex correspondent with 15 years experience in capital markets.", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop" },
+  { name: "Marcus Thorne", role: "Macro Strategist", bio: "Leading researcher on digital primitives and sovereign wealth shifts.", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop" },
+  { name: "Sarah Chen", role: "Venture Lead", bio: "Specializes in pre-IPO liquidity and foundation-backed capital cycles.", image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=2070&auto=format&fit=crop" }
+];
+
+// Mock Data
 const ARTICLES: Article[] = [
   {
     id: 1,
@@ -89,92 +109,135 @@ const ARTICLES: Article[] = [
 ];
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [view, setView] = useState<View>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
+  // Preloader effect
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const timer = setTimeout(() => setLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Scroll effect
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Back to top
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Navigation helpers
+  const navigateTo = (newView: View, article: Article | null = null) => {
+    setView(newView);
+    setSelectedArticle(article);
+    setIsMenuOpen(false);
+    scrollToTop();
+  };
+
   const allTags = Array.from(new Set(ARTICLES.flatMap(article => article.tags))).sort();
 
-  const filteredArticles = selectedTag 
-    ? ARTICLES.filter(article => article.tags.includes(selectedTag))
-    : ARTICLES;
+  const filteredArticles = ARTICLES.filter(article => {
+    const matchesTag = selectedTag ? article.tags.includes(selectedTag) : true;
+    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          article.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTag && matchesSearch;
+  });
 
-  const openArticle = (article: Article) => {
-    setSelectedArticle(article);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+  const paginatedArticles = filteredArticles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const closeArticle = () => {
-    setSelectedArticle(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+
+  const Breadcrumbs = () => (
+    <nav className="mb-12 flex items-center gap-2 text-[10px] font-sans font-bold tracking-[0.3em] uppercase opacity-30">
+      <button onClick={() => navigateTo('home')} className="hover:opacity-100 transition-opacity">Home</button>
+      <span>/</span>
+      {view !== 'home' && (
+        <>
+          <span className="opacity-100">{view.replace('-', ' ')}</span>
+          {selectedArticle && (
+            <>
+              <span>/</span>
+              <span className="opacity-100 truncate max-w-[150px]">{selectedArticle.title}</span>
+            </>
+          )}
+        </>
+      )}
+    </nav>
+  );
 
   return (
-    <div className="min-h-screen flex flex-col font-serif">
+    <div className="min-h-screen flex flex-col font-serif selection:bg-brand-text selection:text-brand-bg">
+      {/* Preloader */}
+      <div className={`preloader ${!loading ? 'hidden' : ''}`}>
+        <div className="flex flex-col items-center gap-8">
+          <h1 className="text-4xl font-black tracking-tighter">THE LEDGER</h1>
+          <div className="loader-bar"></div>
+        </div>
+      </div>
+
       {/* Navigation */}
       <nav 
-        className={`fixed w-full z-50 transition-all duration-500 border-b ${
-          scrolled || selectedArticle ? 'bg-brand-bg/95 border-brand-text' : 'bg-transparent border-transparent'
+        className={`fixed w-full z-[1000] transition-all duration-500 border-b ${
+          scrolled || view !== 'home' ? 'bg-brand-bg/95 border-brand-text' : 'bg-transparent border-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-end pb-4 pt-6">
           <div className="flex flex-col gap-2">
             <button 
-              onClick={() => {
-                if (selectedTag) setSelectedTag(null);
-                if (selectedArticle) closeArticle();
-                setIsMenuOpen(true);
-              }}
+              onClick={() => setIsMenuOpen(true)}
               className="flex items-center gap-2 hover:italic transition-all group"
             >
               <Menu size={18} />
               <span className="text-[10px] font-sans font-bold tracking-[0.3em] uppercase">Bulletin</span>
             </button>
-            <div className={`hidden md:block transition-opacity duration-500 ${scrolled || selectedArticle ? 'opacity-0' : 'opacity-40'}`}>
-              <p className="font-sans text-[10px] uppercase tracking-widest">Issue No. 42</p>
+            <div className={`hidden md:block transition-opacity duration-500 ${scrolled ? 'opacity-0' : 'opacity-40'}`}>
+              <p className="font-sans text-[10px] uppercase tracking-widest text-[#1A1A1A]">Issue No. 42</p>
             </div>
           </div>
 
-          <a href="/" onClick={(e) => { e.preventDefault(); closeArticle(); setSelectedTag(null); }} className="flex flex-col items-center">
+          <button onClick={() => navigateTo('home')} className="flex flex-col items-center">
             <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-none hover:tracking-normal transition-all duration-700">
               THE LEDGER
             </h1>
             <span className="text-[9px] font-sans font-bold tracking-[0.4em] uppercase opacity-60 mt-2">Quarterly Insights & Financial Strategy</span>
-          </a>
+          </button>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-2 text-[#1A1A1A]">
             <div className="flex items-center gap-6">
-              <button className="hover:opacity-40 transition-opacity">
+              <button 
+                onClick={() => navigateTo('archive')}
+                className="hover:opacity-40 transition-opacity"
+              >
                 <Search size={18} />
               </button>
               <button className="bg-brand-text text-brand-bg px-5 py-2 text-[10px] font-sans font-bold tracking-widest uppercase hover:opacity-90 transition-opacity hidden md:block">
                 Subscribe
               </button>
             </div>
-            <div className={`hidden md:block transition-opacity duration-500 ${scrolled || selectedArticle ? 'opacity-0' : 'opacity-40'}`}>
+            <div className={`hidden md:block transition-opacity duration-500 ${scrolled ? 'opacity-0' : 'opacity-40'}`}>
               <p className="font-sans text-[10px] uppercase tracking-widest font-bold">Spring 2024</p>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Menu Overlay Component */}
+      {/* Menu Overlay */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-brand-bg z-[100] p-6 flex flex-col"
+            className="fixed inset-0 bg-brand-bg z-[1001] p-6 flex flex-col"
           >
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">Documentation Index</span>
@@ -188,24 +251,26 @@ export default function App() {
             
             <div className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full">
               <ul className="space-y-4 md:space-y-6">
-                {['Analysis', 'Markets', 'Strategy', 'Archive', 'About', 'Contact'].map((item, idx) => (
+                {[
+                  { name: 'Home', view: 'home' as View },
+                  { name: 'Archive', view: 'archive' as View },
+                  { name: 'Thesis', view: 'about' as View },
+                  { name: 'The Team', view: 'team' as View },
+                  { name: 'Contact', view: 'contact' as View },
+                  { name: 'Legal', view: 'legal' as View }
+                ].map((item, idx) => (
                   <motion.li 
-                    key={item}
+                    key={item.name}
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: idx * 0.1 }}
                   >
-                    <a 
-                      href="#" 
-                      className="text-6xl md:text-9xl font-serif font-black tracking-tighter hover:italic hover:pl-6 transition-all duration-500 uppercase leading-[0.8]"
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        setSelectedTag(null);
-                        closeArticle();
-                      }}
+                    <button 
+                      onClick={() => navigateTo(item.view)}
+                      className="text-6xl md:text-9xl font-serif font-black tracking-tighter hover:italic hover:pl-6 transition-all duration-500 uppercase leading-[0.8] text-left"
                     >
-                      {item}
-                    </a>
+                      {item.name}
+                    </button>
                   </motion.li>
                 ))}
               </ul>
@@ -216,8 +281,10 @@ export default function App() {
                 <span className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40 block">Digital Presence</span>
                 <div className="flex gap-6">
                   <Twitter size={18} className="hover:opacity-40 cursor-pointer" />
+                  <Facebook size={18} className="hover:opacity-40 cursor-pointer" />
                   <Instagram size={18} className="hover:opacity-40 cursor-pointer" />
                   <Linkedin size={18} className="hover:opacity-40 cursor-pointer" />
+                  <Github size={18} className="hover:opacity-40 cursor-pointer" />
                 </div>
               </div>
               <p className="text-[9px] font-sans font-bold tracking-widest uppercase opacity-30 text-right leading-relaxed">
@@ -231,108 +298,56 @@ export default function App() {
       <main className="flex-1 pt-48 pb-20">
         <div className="max-w-7xl mx-auto px-6">
           <AnimatePresence mode="wait">
-            {!selectedArticle ? (
-              <motion.div 
-                key="feed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {/* Tag Cloud Section */}
-                <section className="mb-12 border-y border-brand-text/10 py-6">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <span className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40 mr-4">Filter By Tag:</span>
-                    <button 
-                      onClick={() => setSelectedTag(null)}
-                      className={`text-[10px] font-sans font-bold tracking-widest uppercase px-3 py-1 border transition-all ${
-                        !selectedTag ? 'bg-brand-text text-brand-bg border-brand-text' : 'border-transparent hover:border-brand-text/20'
-                      }`}
-                    >
-                      All Articles
-                    </button>
-                    {allTags.map(tag => (
-                      <button 
-                        key={tag}
-                        onClick={() => setSelectedTag(tag)}
-                        className={`text-[10px] font-sans font-bold tracking-widest uppercase px-3 py-1 border transition-all ${
-                          selectedTag === tag ? 'bg-brand-text text-brand-bg border-brand-text' : 'border-transparent hover:border-brand-text/20'
-                        }`}
-                      >
-                        {tag}
-                      </button>
+            {/* HOME VIEW */}
+            {view === 'home' && (
+              <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {/* Header Swiper Slider */}
+                <section className="mb-24 h-[600px]">
+                  <Swiper
+                    modules={[Pagination, Autoplay, EffectFade]}
+                    effect="fade"
+                    pagination={{ clickable: true }}
+                    autoplay={{ delay: 5000 }}
+                    className="h-full hero-swiper"
+                  >
+                    {ARTICLES.slice(0, 3).map((article) => (
+                      <SwiperSlide key={article.id}>
+                        <div className="grid md:grid-cols-2 h-full items-center gap-12">
+                          <div className="order-2 md:order-1 space-y-8">
+                            <span className="font-sans text-[10px] font-bold uppercase tracking-widest bg-brand-text text-brand-bg px-2 py-1">
+                              Featured Story
+                            </span>
+                            <h2 className="text-5xl md:text-7xl font-black leading-none group-hover:italic transition-all">
+                              {article.title}
+                            </h2>
+                            <p className="text-xl text-brand-text/60 italic leading-tight max-w-md">
+                              {article.excerpt}
+                            </p>
+                            <button 
+                              onClick={() => navigateTo('article-detail', article)}
+                              className="group flex items-center gap-4 text-xs font-sans font-bold tracking-[0.3em] uppercase underline-offset-8"
+                            >
+                              Open Ledger <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                            </button>
+                          </div>
+                          <div className="order-1 md:order-2 h-full bg-[#D9D7D2] overflow-hidden grayscale contrast-125">
+                            <img src={article.image} alt={article.title} className="w-full h-full object-cover mix-blend-multiply opacity-80" referrerPolicy="no-referrer" />
+                          </div>
+                        </div>
+                      </SwiperSlide>
                     ))}
-                  </div>
+                  </Swiper>
                 </section>
 
-                {/* Featured Hero Article - Hide if filtering */}
-                {!selectedTag && (
-                  <section className="mb-24">
-                    <div 
-                      className="grid md:grid-cols-12 gap-10 items-center cursor-pointer group border-b border-brand-text pb-16"
-                      onClick={() => openArticle(ARTICLES[0])}
-                    >
-                      <div className="md:col-span-8">
-                        <motion.div 
-                          initial={{ opacity: 0, y: 30 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          className="article-image-container relative bg-[#D9D7D2]"
-                        >
-                          <img 
-                            src={ARTICLES[0].image}
-                            alt={ARTICLES[0].title}
-                            className="w-full h-full object-cover grayscale mix-blend-multiply transition-all duration-1000 group-hover:grayscale-0"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute top-0 left-0 bg-brand-text text-brand-bg px-3 py-1 text-[10px] font-sans font-bold tracking-widest uppercase">
-                            Lead Analysis
-                          </div>
-                        </motion.div>
-                      </div>
-                      <div className="md:col-span-4 space-y-6">
-                        <div className="font-sans text-[10px] font-bold uppercase tracking-[0.3em] opacity-40">
-                          {ARTICLES[0].category}
-                        </div>
-                        <h2 className="text-5xl lg:text-7xl leading-[0.9] font-black tracking-tighter group-hover:italic transition-all duration-500">
-                          {ARTICLES[0].title}
-                        </h2>
-                        <div className="flex gap-2 flex-wrap mb-4">
-                          {ARTICLES[0].tags.map(tag => (
-                            <span key={tag} className="text-[9px] font-sans font-bold uppercase tracking-widest text-brand-accent/60">#{tag}</span>
-                          ))}
-                        </div>
-                        <p className="text-xl text-brand-text/60 italic leading-tight">
-                          {ARTICLES[0].excerpt}
-                        </p>
-                        <div className="pt-6 flex flex-col gap-4 border-t border-brand-text/10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-brand-text shadow-xl"></div>
-                            <div className="font-sans text-[10px]">
-                              <p className="font-bold uppercase tracking-widest">{ARTICLES[0].author}</p>
-                              <p className="opacity-40 uppercase tracking-widest pb-1">Senior Editor</p>
-                            </div>
-                          </div>
-                          <button className="flex items-center gap-2 text-[10px] font-sans font-bold tracking-widest uppercase group-hover:pl-2 transition-all">
-                            Read The Ledger
-                            <ArrowUpRight size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                )}
-
                 {/* Sub Grid Section */}
-                <section className="mb-24">
+                <section className="mt-32">
                   <div className="flex justify-between items-end mb-12 divider-heavy pb-4">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">
-                      {selectedTag ? `Tagged: ${selectedTag}` : 'Current Briefings'}
-                    </h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tighter">The Briefing</h3>
                     <div className="font-sans text-[10px] font-bold tracking-[0.4em] uppercase opacity-40">Series 04.2</div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
-                    {(selectedTag ? filteredArticles : ARTICLES.slice(1)).map((article, idx) => (
+                    {ARTICLES.slice(3).map((article, idx) => (
                       <motion.article 
                         key={article.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -340,16 +355,10 @@ export default function App() {
                         viewport={{ once: true }}
                         transition={{ delay: idx * 0.1 }}
                         className="article-card group cursor-pointer"
-                        id={`article-${article.id}`}
-                        onClick={() => openArticle(article)}
+                        onClick={() => navigateTo('article-detail', article)}
                       >
-                        <div className="article-image-container mb-6 bg-[#D9D7D2] relative">
-                          <img 
-                            src={article.image}
-                            alt={article.title}
-                            className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
-                            referrerPolicy="no-referrer"
-                          />
+                        <div className="article-image-container mb-6">
+                          <img src={article.image} alt={article.title} referrerPolicy="no-referrer" />
                         </div>
                         <div className="space-y-4">
                           <div className="flex items-center gap-4">
@@ -359,41 +368,253 @@ export default function App() {
                           <h4 className="text-2xl leading-[1.05] font-black group-hover:underline decoration-2 underline-offset-4">
                             {article.title}
                           </h4>
-                          <div className="flex gap-2 flex-wrap">
-                            {article.tags.map(tag => (
-                              <span key={tag} className={`text-[9px] font-sans font-bold uppercase tracking-widest ${selectedTag === tag ? 'text-brand-accent' : 'text-brand-text/30'}`}>#{tag}</span>
-                            ))}
-                          </div>
                           <p className="text-sm text-brand-text/50 font-sans leading-relaxed line-clamp-2">
                             {article.excerpt}
                           </p>
-                          <div className="pt-4 flex items-center justify-between border-t border-brand-text/10">
-                            <span className="font-sans text-[10px] font-bold tracking-widest uppercase opacity-40">{article.date}</span>
-                            <span className="font-sans text-[10px] font-bold tracking-widest uppercase opacity-40 italic">{article.readingTime}</span>
-                          </div>
                         </div>
                       </motion.article>
                     ))}
                   </div>
                 </section>
               </motion.div>
-            ) : (
-              <motion.div 
-                key="article"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-4xl mx-auto"
-              >
-                <button 
-                  onClick={closeArticle}
-                  className="mb-12 flex items-center gap-2 text-[10px] font-sans font-bold tracking-[0.4em] uppercase opacity-40 hover:opacity-100 transition-opacity"
-                >
-                  <ChevronRight size={14} className="rotate-180" />
-                  Index
-                </button>
-                
+            )}
+
+            {/* ARCHIVE VIEW */}
+            {view === 'archive' && (
+              <motion.div key="archive" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="mb-16 space-y-12">
+                  <h2 className="text-6xl md:text-8xl font-black tracking-tighter">THE ARCHIVE</h2>
+                  
+                  <div className="relative group max-w-2xl">
+                    <Search className="absolute left-0 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity" size={24} />
+                    <input 
+                      type="text" 
+                      placeholder="Search signals..."
+                      className="w-full bg-transparent border-b border-brand-text/10 py-6 pl-12 text-3xl font-serif italic outline-none focus:border-brand-text transition-colors"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex gap-4 flex-wrap border-y border-brand-text/5 py-8">
+                    <button 
+                      onClick={() => setSelectedTag(null)}
+                      className={`text-[10px] font-sans font-bold tracking-[0.2em] uppercase px-4 py-2 border transition-all ${!selectedTag ? 'bg-brand-text text-brand-bg border-brand-text shadow-xl' : 'border-brand-text/10'}`}
+                    >
+                      All Issues
+                    </button>
+                    {allTags.map(tag => (
+                      <button 
+                        key={tag}
+                        onClick={() => setSelectedTag(tag)}
+                        className={`text-[10px] font-sans font-bold tracking-[0.2em] uppercase px-4 py-2 border transition-all ${selectedTag === tag ? 'bg-brand-text text-brand-bg border-brand-text shadow-xl' : 'border-brand-text/10'}`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24 mb-24">
+                  {paginatedArticles.map((article) => (
+                    <motion.article 
+                      key={article.id}
+                      layout
+                      className="article-card group cursor-pointer"
+                      onClick={() => navigateTo('article-detail', article)}
+                    >
+                      <div className="article-image-container mb-6 h-48">
+                        <img src={article.image} alt={article.title} referrerPolicy="no-referrer" />
+                      </div>
+                      <h4 className="text-xl leading-tight font-black group-hover:underline">{article.title}</h4>
+                      <p className="text-sm text-brand-text/40 opacity-60 font-sans mt-2">{article.date} • {article.readingTime}</p>
+                    </motion.article>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-6 border-t border-brand-text/10 pt-12">
+                    <button 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className="p-4 rounded-full border border-brand-text/10 hover:bg-brand-text hover:text-brand-bg disabled:opacity-10 transition-all"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span className="font-sans text-[10px] font-bold tracking-widest uppercase">Page {currentPage} of {totalPages}</span>
+                    <button 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className="p-4 rounded-full border border-brand-text/10 hover:bg-brand-text hover:text-brand-bg disabled:opacity-10 transition-all"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ABOUT VIEW */}
+            {view === 'about' && (
+              <motion.div key="about" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="grid md:grid-cols-2 gap-24 items-start">
+                  <div className="space-y-12">
+                    <h2 className="text-6xl md:text-8xl font-black tracking-tighter">OUR THESIS</h2>
+                    <p className="text-3xl italic text-brand-text/60 leading-tight">
+                      We believe that financial reporting should be as sophisticated as the markets it observes.
+                    </p>
+                    <div className="prose text-lg text-brand-text/80 space-y-6">
+                      <p>
+                        Established in 2024, The Ledger is a boutique media entity dedicated to providing high-signal reporting for the modern institution. Our focus is not on the noise of the daily ticker, but on the structural shifts that define the coming decade.
+                      </p>
+                      <p>
+                        From our offices in Zurich, New York, and Tokyo, we source insights from the most influential minds in macroeconomics, venture capital, and quantitative strategy.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-[#D9D7D2] aspect-[4/5] overflow-hidden grayscale contrast-125">
+                    <img 
+                      src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop" 
+                      alt="Office" 
+                      className="w-full h-full object-cover mix-blend-multiply opacity-80"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TEAM VIEW */}
+            {view === 'team' && (
+              <motion.div key="team" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="space-y-24">
+                  <header>
+                    <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-8">THE TEAM</h2>
+                    <p className="text-2xl text-brand-text/60 italic max-w-2xl">
+                      A collective of specialized researchers and correspondents operating at the intersection of capital and technology.
+                    </p>
+                  </header>
+                  <div className="grid md:grid-cols-3 gap-12">
+                    {TEAM.map((member) => (
+                      <div key={member.name} className="space-y-6">
+                        <div className="aspect-[3/4] bg-[#D9D7D2] grayscale contrast-125 overflow-hidden">
+                          <img src={member.image} alt={member.name} className="w-full h-full object-cover mix-blend-multiply opacity-80" referrerPolicy="no-referrer" />
+                        </div>
+                        <div>
+                          <h4 className="text-2xl font-black">{member.name}</h4>
+                          <p className="text-[10px] font-sans font-bold uppercase tracking-widest text-brand-accent mb-4">{member.role}</p>
+                          <p className="text-sm font-serif opacity-70 leading-relaxed">{member.bio}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* LEGAL VIEW */}
+            {view === 'legal' && (
+              <motion.div key="legal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="max-w-2xl mx-auto space-y-16">
+                  <header className="border-b border-brand-text pb-8">
+                    <h2 className="text-4xl font-black tracking-tighter">LEGAL NOTICES</h2>
+                    <p className="font-sans text-[10px] font-bold uppercase tracking-widest opacity-40 mt-4">Last Updated: May 2024</p>
+                  </header>
+                  <section className="space-y-6">
+                    <h4 className="text-xl font-bold">Privacy Policy</h4>
+                    <p className="opacity-70 leading-relaxed">
+                      At The Ledger, we take intellectual property and data preservation seriously. Our privacy protocols are designed for maximum discretion.
+                    </p>
+                    <ul className="list-disc pl-6 opacity-70 space-y-2">
+                        <li>We do not track session data through third-party cookies.</li>
+                        <li>All correspondence is encrypted under Swiss jurisdiction.</li>
+                        <li>Digital signals are processed on private nodes.</li>
+                    </ul>
+                  </section>
+                  <section className="space-y-6">
+                    <h4 className="text-xl font-bold">Terms of Service</h4>
+                    <p className="opacity-70 leading-relaxed">
+                      Redistribution of The Ledger's proprietary analysis is strictly prohibited without prior written authorization from Ledger Media Group. Analysis provided is for informational strategy only and does not constitute formal financial advice.
+                    </p>
+                  </section>
+                </div>
+              </motion.div>
+            )}
+
+            {/* CONTACT VIEW */}
+            {view === 'contact' && (
+              <motion.div key="contact" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
+                <div className="grid md:grid-cols-2 gap-24">
+                  <div className="space-y-12">
+                    <h2 className="text-6xl md:text-8xl font-black tracking-tighter">CONTACT</h2>
+                    <div className="space-y-8">
+                      <div className="flex gap-6 items-start">
+                        <MapPin size={24} className="mt-1 opacity-40" />
+                        <div>
+                          <h5 className="font-sans text-[10px] font-bold tracking-widest uppercase mb-2">Main Office</h5>
+                          <p className="text-xl font-serif">Bahnhofstrasse 1, 8001 Zürich, Switzerland</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-6 items-start">
+                        <Phone size={24} className="mt-1 opacity-40" />
+                        <div>
+                          <h5 className="font-sans text-[10px] font-bold tracking-widest uppercase mb-2">Inquiries</h5>
+                          <p className="text-xl font-serif">+41 44 211 11 11</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-6 items-start">
+                        <Mail size={24} className="mt-1 opacity-40" />
+                        <div>
+                          <h5 className="font-sans text-[10px] font-bold tracking-widest uppercase mb-2">Email</h5>
+                          <p className="text-xl font-serif">desk@theledger.journal</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-64 bg-[#D9D7D2] grayscale contrast-125 border border-brand-text/10">
+                       <iframe 
+                        title="location"
+                        width="100%" 
+                        height="100%" 
+                        frameBorder="0" 
+                        scrolling="no" 
+                        src="https://maps.google.com/maps?q=Zurich%20Bahnhofstrasse&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                      ></iframe>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-12 shadow-2xl border border-brand-text/5">
+                    <h4 className="text-2xl font-black tracking-tight mb-8">Send a Dispatch</h4>
+                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Nom de Plume</label>
+                        <input type="text" className="w-full border-b border-brand-text/10 py-3 outline-none focus:border-brand-text transition-colors font-serif" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Direct Address</label>
+                        <input type="email" className="w-full border-b border-brand-text/10 py-3 outline-none focus:border-brand-text transition-colors font-serif" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-sans font-bold uppercase tracking-widest opacity-40">Message</label>
+                        <textarea rows={4} className="w-full border-b border-brand-text/10 py-3 outline-none focus:border-brand-text transition-colors font-serif resize-none" />
+                      </div>
+                      <button className="w-full bg-brand-text text-brand-bg py-5 font-sans font-bold tracking-widest uppercase hover:opacity-90 transition-opacity flex items-center justify-center gap-3">
+                        Transmit Information <Send size={16} />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* DETAIL VIEW handled in detail view component pattern (simulated) */}
+            {view === 'article-detail' && selectedArticle && (
+              <motion.div key="article" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Breadcrumbs />
                 <header className="space-y-8 mb-16 text-center border-b border-brand-text pb-16">
                   <span className="text-[10px] font-sans font-bold tracking-[0.6em] uppercase text-brand-accent">
                     {selectedArticle.category}
@@ -408,47 +629,21 @@ export default function App() {
                 </header>
 
                 <div className="aspect-[21/9] bg-[#D9D7D2] mb-16 overflow-hidden grayscale contrast-125">
-                  <img 
-                    src={selectedArticle.image} 
-                    alt="" 
-                    className="w-full h-full object-cover mix-blend-multiply opacity-80"
-                    referrerPolicy="no-referrer"
-                  />
+                  <img src={selectedArticle.image} alt="" className="w-full h-full object-cover mix-blend-multiply opacity-80" referrerPolicy="no-referrer" />
                 </div>
 
                 <div className="max-w-2xl mx-auto space-y-10 text-brand-text/80 leading-relaxed font-serif text-xl">
                   <p className="text-3xl italic text-brand-text/60 font-normal leading-tight first-letter:text-9xl first-letter:font-black first-letter:text-brand-text first-letter:mr-4 first-letter:float-left first-letter:leading-[0.7] first-letter:mt-2">
-                    {selectedArticle.excerpt} This marks a significant turning point in the contemporary economic landscape, where traditional models often fail to capture the nuances of digital-first liquidity and shifting political-economic boundaries.
+                    {selectedArticle.excerpt}
                   </p>
                   <p>
                     For decades, the standard playbook for capital allocation relied on predictable inflation-target frameworks and the assumption of relatively unfettered global trade. However, as we witness the fragmentation of supply chains and the rise of sovereign-wealth-backed industrial policies, the old rules are increasingly obsolete.
                   </p>
-                  <div className="py-16 border-y-2 border-brand-text my-20">
-                    <blockquote className="text-4xl italic text-center font-normal px-8 leading-none tracking-tight">
-                      "True value is no longer found in abundance, but in the verified scarcity of trust within decentralized networks."
-                    </blockquote>
-                  </div>
-                  <p>
-                    As we look toward the remainder of the decade, the focus must shift toward resilient asset classes that can withstand shocks while providing consistent exposure to the underlying engines of global growth. This requires a fundamental decoupling from purely quantitative benchmarks in favor of qualitative, deep-sector expertise.
-                  </p>
-                </div>
-
-                <div className="mt-32 pt-16 border-t border-brand-text/10 flex flex-col md:flex-row justify-between items-center gap-12 font-sans text-[10px] font-bold tracking-widest uppercase">
-                   <div className="flex flex-col gap-2 group cursor-pointer max-w-[200px]">
-                      <span className="opacity-40">Previous Portfolio</span>
-                      <span className="hover:italic transition-all group-hover:pl-2">The Architecture of Venture Capital</span>
-                   </div>
-                   <button onClick={closeArticle} className="p-4 rounded-full border border-brand-text/10 hover:bg-brand-text hover:text-brand-bg transition-all">
-                      <ArrowUpRight size={24} className="rotate-225" />
-                   </button>
-                   <div className="flex flex-col gap-2 group cursor-pointer text-right max-w-[200px]">
-                      <span className="opacity-40">Coming Next</span>
-                      <span className="hover:italic transition-all group-hover:pr-2">Capital Efficiency in 2025</span>
-                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
 
           {/* Newsletter Section */}
           <section className="bg-brand-text text-brand-bg p-12 md:p-24 relative overflow-hidden mt-32">
@@ -479,33 +674,49 @@ export default function App() {
         </div>
       </main>
 
+      {/* Back to Top */}
+      <button 
+        onClick={scrollToTop}
+        className={`back-to-top ${scrolled ? 'visible' : ''}`}
+      >
+        <ArrowUp size={20} />
+      </button>
+
       {/* Footer */}
-      <footer className="pt-24 pb-12 bg-brand-bg border-t border-brand-text/10">
+      <footer className="pt-24 pb-12 bg-brand-bg border-t border-brand-text/10 mt-auto">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-16 mb-24">
             <div className="col-span-2 space-y-8">
-              <h2 className="text-5xl font-black tracking-tighter">THE LEDGER</h2>
+              <h2 className="text-5xl font-black tracking-tighter cursor-pointer" onClick={() => navigateTo('home')}>THE LEDGER</h2>
               <p className="text-brand-text/50 font-serif text-lg leading-relaxed max-w-sm">
                 A premier financial journal providing deep-sector analysis and strategic foresight for the modern institution.
               </p>
             </div>
             <div className="space-y-8">
-              <h5 className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">Portfolio</h5>
+              <h5 className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">Sitemap</h5>
               <ul className="space-y-4 font-sans text-[10px] font-bold uppercase tracking-widest">
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Global Markets</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Venture Trends</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Private Wealth</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Macro Reports</a></li>
+                <li><button onClick={() => navigateTo('home')} className="hover:opacity-40 transition-opacity">Global Front</button></li>
+                <li><button onClick={() => navigateTo('archive')} className="hover:opacity-40 transition-opacity">Archives</button></li>
+                <li><button onClick={() => navigateTo('about')} className="hover:opacity-40 transition-opacity">Thesis</button></li>
+                <li><button onClick={() => navigateTo('contact')} className="hover:opacity-40 transition-opacity">Communication</button></li>
               </ul>
             </div>
             <div className="space-y-8">
-              <h5 className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">Organization</h5>
-              <ul className="space-y-4 font-sans text-[10px] font-bold uppercase tracking-widest">
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Our Thesis</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Archives</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Legal Notice</a></li>
-                <li><a href="#" className="hover:opacity-40 transition-opacity">Communications</a></li>
-              </ul>
+              <h5 className="text-[10px] font-sans font-bold tracking-widest uppercase opacity-40">Intelligence</h5>
+              <div className="space-y-4 font-sans text-xs">
+                <div className="flex justify-between border-b border-brand-text/10 pb-1">
+                  <span>S&P 500</span>
+                  <span className="text-green-600">+1.24%</span>
+                </div>
+                <div className="flex justify-between border-b border-brand-text/10 pb-1">
+                  <span>BTC/USD</span>
+                  <span className="text-red-600">-0.82%</span>
+                </div>
+                <div className="flex justify-between border-b border-brand-text/10 pb-1">
+                  <span>Gold</span>
+                  <span className="text-green-600">+0.45%</span>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -513,7 +724,7 @@ export default function App() {
             <div className="flex gap-8">
               <span className="hover:text-brand-accent cursor-pointer transition-colors">Currencies</span>
               <span className="hover:text-brand-accent cursor-pointer transition-colors">Equities</span>
-              <span className="hover:text-brand-accent cursor-pointer transition-colors">Fixed Income</span>
+              <span className="hover:text-brand-accent cursor-pointer transition-colors">Commodities</span>
             </div>
             <div className="opacity-40 hidden md:block">
               &copy; 2024 Ledger Media Group • Zurich • New York • Tokyo
